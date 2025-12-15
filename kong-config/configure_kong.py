@@ -43,12 +43,13 @@ class KongConfigurator:
         return None
     
     def create_route(self, service_name: str, route_name: str, paths: List[str], 
-                    methods: List[str] = None) -> Dict:
+                    methods: List[str] = None, strip_path: bool = False) -> Dict:
         """Crea una ruta para un servicio"""
         data = {
             "name": route_name,
             "paths": paths,
-            "methods": methods or ["GET", "POST", "PATCH", "DELETE"]
+            "methods": methods or ["GET", "POST", "PATCH", "DELETE"],
+            "strip_path": strip_path
         }
         response = requests.post(
             f"{self.admin_url}/services/{service_name}/routes",
@@ -83,37 +84,51 @@ class KongConfigurator:
     def configure_all(self):
         """Configura todos los servicios, rutas y plugins"""
         print("\n=== CREANDO SERVICIOS ===")
+        # Los contenedores exponen puerto 8000 internamente (no confundir con puertos mapeados en docker-compose)
         self.create_service("auth-service", "http://auth-service:8000", ["auth"])
         self.create_service("pedido-service", "http://pedido-service:8000", ["pedidos"])
         self.create_service("fleet-service", "http://fleet-service:8000", ["fleet"])
         self.create_service("billing-service", "http://billing-service:8000", ["billing"])
         
         print("\n=== CREANDO RUTAS - AUTH ===")
-        self.create_route("auth-service", "auth-login", ["/api/auth/login"], ["POST"])
-        self.create_route("auth-service", "auth-register", ["/api/auth/register"], ["POST"])
-        self.create_route("auth-service", "auth-token-refresh", ["/api/auth/token/refresh"], ["POST"])
-        self.create_route("auth-service", "auth-token-revoke", ["/api/auth/token/revoke"], ["POST"])
-        self.create_route("auth-service", "auth-me", ["/api/auth/me"], ["GET"])
+        # Ruta base para todo el prefijo /api/auth (login, register, me, etc.)
+        self.create_route("auth-service", "auth-base", ["/api/auth"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
+        # Rutas específicas (opcionales)
+        self.create_route("auth-service", "auth-login", ["/api/auth/login"], ["POST"], strip_path=False)
+        self.create_route("auth-service", "auth-register", ["/api/auth/register"], ["POST"], strip_path=False)
+        self.create_route("auth-service", "auth-token-refresh", ["/api/auth/token/refresh"], ["POST"], strip_path=False)
+        self.create_route("auth-service", "auth-token-revoke", ["/api/auth/token/revoke"], ["POST"], strip_path=False)
+        self.create_route("auth-service", "auth-me", ["/api/auth/me"], ["GET"], strip_path=False)
         
         print("\n=== CREANDO RUTAS - PEDIDOS ===")
-        self.create_route("pedido-service", "pedidos-create", ["/api/pedidos"], ["POST"])
-        self.create_route("pedido-service", "pedidos-list", ["/api/pedidos"], ["GET"])
-        self.create_route("pedido-service", "pedidos-detail", ["/api/pedidos/{id}"], ["GET"])
-        self.create_route("pedido-service", "pedidos-update", ["/api/pedidos/{id}"], ["PATCH"])
-        self.create_route("pedido-service", "pedidos-cancel", ["/api/pedidos/{id}"], ["DELETE"])
+        # Ruta base para todo el prefijo /api/pedidos
+        self.create_route("pedido-service", "pedidos-base", ["/api/pedidos"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
+        # Rutas específicas (opcionales)
+        self.create_route("pedido-service", "pedidos-create", ["/api/pedidos"], ["POST"], strip_path=False)
+        self.create_route("pedido-service", "pedidos-list", ["/api/pedidos"], ["GET"], strip_path=False)
+        # Para ids, preferible path base y que pase todo el sufijo
+        self.create_route("pedido-service", "pedidos-detail", ["/api/pedidos"], ["GET"], strip_path=False)
+        self.create_route("pedido-service", "pedidos-update", ["/api/pedidos"], ["PATCH"], strip_path=False)
+        self.create_route("pedido-service", "pedidos-cancel", ["/api/pedidos"], ["DELETE"], strip_path=False)
         
         print("\n=== CREANDO RUTAS - FLEET ===")
-        self.create_route("fleet-service", "fleet-repartidores", ["/api/fleet/repartidores"], ["GET", "POST"])
-        self.create_route("fleet-service", "fleet-repartidor", ["/api/fleet/repartidores/{id}"], ["GET", "PATCH"])
-        self.create_route("fleet-service", "fleet-vehiculos", ["/api/fleet/vehiculos"], ["GET", "POST"])
-        self.create_route("fleet-service", "fleet-vehiculo", ["/api/fleet/vehiculos/{id}"], ["GET"])
+        # Ruta base para todo el prefijo /api/fleet
+        self.create_route("fleet-service", "fleet-base", ["/api/fleet"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
+        # Rutas específicas (opcionales)
+        self.create_route("fleet-service", "fleet-repartidores", ["/api/fleet/repartidores"], ["GET", "POST"], strip_path=False)
+        self.create_route("fleet-service", "fleet-repartidor", ["/api/fleet/repartidores"], ["GET", "PATCH"], strip_path=False)
+        self.create_route("fleet-service", "fleet-vehiculos", ["/api/fleet/vehiculos"], ["GET", "POST"], strip_path=False)
+        self.create_route("fleet-service", "fleet-vehiculo", ["/api/fleet/vehiculos"], ["GET"], strip_path=False)
         
         print("\n=== CREANDO RUTAS - BILLING ===")
-        self.create_route("billing-service", "billing-create", ["/api/billing"], ["POST"])
-        self.create_route("billing-service", "billing-list", ["/api/billing"], ["GET"])
-        self.create_route("billing-service", "billing-detail", ["/api/billing/{id}"], ["GET"])
-        self.create_route("billing-service", "billing-update", ["/api/billing/{id}"], ["PATCH"])
-        self.create_route("billing-service", "billing-send", ["/api/billing/{id}/enviar"], ["POST"])
+        # Ruta base para todo el prefijo /api/billing
+        self.create_route("billing-service", "billing-base", ["/api/billing"], ["GET", "POST", "PATCH"], strip_path=False)
+        # Rutas específicas (opcionales)
+        self.create_route("billing-service", "billing-create", ["/api/billing"], ["POST"], strip_path=False)
+        self.create_route("billing-service", "billing-list", ["/api/billing"], ["GET"], strip_path=False)
+        self.create_route("billing-service", "billing-detail", ["/api/billing"], ["GET"], strip_path=False)
+        self.create_route("billing-service", "billing-update", ["/api/billing"], ["PATCH"], strip_path=False)
+        self.create_route("billing-service", "billing-send", ["/api/billing"], ["POST"], strip_path=False)
         
         print("\n=== CONFIGURANDO PLUGINS ===")
         
@@ -123,8 +138,16 @@ class KongConfigurator:
             "policy": "local"
         })
         
-        # JWT para rutas protegidas
-        self.create_plugin("jwt", "auth-service", {
+        # JWT para rutas protegidas (NO en auth-service)
+        self.create_plugin("jwt", "pedido-service", {
+            "key_claim_name": "sub",
+            "secret_is_base64": False
+        })
+        self.create_plugin("jwt", "fleet-service", {
+            "key_claim_name": "sub",
+            "secret_is_base64": False
+        })
+        self.create_plugin("jwt", "billing-service", {
             "key_claim_name": "sub",
             "secret_is_base64": False
         })

@@ -1,20 +1,80 @@
 services:
-  # PostgreSQL para persistencia
-  postgres:
+  # Base de datos para AuthService
+  auth-db:
     image: postgres:15
-    container_name: postgres-db
+    container_name: auth-db
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: microservices
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
     ports:
-      - "5432:5432"
+      - "5437:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - auth_data:/var/lib/postgresql/data
     networks:
       - microservices-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para PedidoService
+  pedido-db:
+    image: postgres:15
+    container_name: pedido-db
+    environment:
+      POSTGRES_USER: pedido_user
+      POSTGRES_PASSWORD: pedido_pass
+      POSTGRES_DB: pedido_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pedido_data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pedido_user -d pedido_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para FleetService
+  fleet-db:
+    image: postgres:15
+    container_name: fleet-db
+    environment:
+      POSTGRES_USER: fleet_user
+      POSTGRES_PASSWORD: fleet_pass
+      POSTGRES_DB: fleet_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - fleet_data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleet_user -d fleet_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos para BillingService
+  billing-db:
+    image: postgres:15
+    container_name: billing-db
+    environment:
+      POSTGRES_USER: billing_user
+      POSTGRES_PASSWORD: billing_pass
+      POSTGRES_DB: billing_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - billing_data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing_user -d billing_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,13 +86,13 @@ services:
       dockerfile: ./auth-service/Dockerfile
     container_name: auth-service
     ports:
-      - "8001:8000"
+      - "8011:8000"
     environment:
-      DATABASE_URL: postgresql://admin:admin123@postgres:5432/microservices
+      DATABASE_URL: postgresql://auth_user:auth_pass@auth-db:5432/auth_db
       JWT_SECRET: your-secret-key-change-in-production
       SERVICE_NAME: auth-service
     depends_on:
-      postgres:
+      auth-db:
         condition: service_healthy
     networks:
       - microservices-network
@@ -51,11 +111,11 @@ services:
     ports:
       - "8002:8000"
     environment:
-      DATABASE_URL: postgresql://admin:admin123@postgres:5432/microservices
+      DATABASE_URL: postgresql://pedido_user:pedido_pass@pedido-db:5432/pedido_db
       JWT_SECRET: your-secret-key-change-in-production
       SERVICE_NAME: pedido-service
     depends_on:
-      postgres:
+      pedido-db:
         condition: service_healthy
     networks:
       - microservices-network
@@ -74,11 +134,11 @@ services:
     ports:
       - "8003:8000"
     environment:
-      DATABASE_URL: postgresql://admin:admin123@postgres:5432/microservices
+      DATABASE_URL: postgresql://fleet_user:fleet_pass@fleet-db:5432/fleet_db
       JWT_SECRET: your-secret-key-change-in-production
       SERVICE_NAME: fleet-service
     depends_on:
-      postgres:
+      fleet-db:
         condition: service_healthy
     networks:
       - microservices-network
@@ -97,11 +157,11 @@ services:
     ports:
       - "8004:8000"
     environment:
-      DATABASE_URL: postgresql://admin:admin123@postgres:5432/microservices
+      DATABASE_URL: postgresql://billing_user:billing_pass@billing-db:5432/billing_db
       JWT_SECRET: your-secret-key-change-in-production
       SERVICE_NAME: billing-service
     depends_on:
-      postgres:
+      billing-db:
         condition: service_healthy
     networks:
       - microservices-network
@@ -111,7 +171,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Kong Database
+  # Kong Database (base de datos SOLO para Kong API Gateway)
   kong-db:
     image: postgres:15
     container_name: kong-db
@@ -120,7 +180,7 @@ services:
       POSTGRES_PASSWORD: kong
       POSTGRES_DB: kong
     ports:
-      - "5433:5432"
+      - "5436:5432"
     volumes:
       - kong_data:/var/lib/postgresql/data
     networks:
@@ -181,26 +241,30 @@ services:
       timeout: 5s
       retries: 5
 
-  # Konga (Kong Admin UI - optional)
-  konga:
-    image: pantsel/konga:latest
-    container_name: konga-admin
-    environment:
-      NODE_ENV: production
-      DB_ADAPTER: postgres
-      DB_HOST: kong-db
-      DB_USER: kong
-      DB_PASSWORD: kong
-      DB_DATABASE: kong
-    ports:
-      - "1337:1337"
-    depends_on:
-      - kong-db
-    networks:
-      - microservices-network
+  # Konga desactivado - usar Kong Admin API en http://localhost:8001
+  # Si necesitas UI visual, puedes descomentar:
+  # konga:
+  #   image: pantsel/konga:latest
+  #   container_name: konga-admin
+  #   environment:
+  #     NODE_ENV: production
+  #     DB_ADAPTER: postgres
+  #     DB_HOST: kong-db
+  #     DB_USER: kong
+  #     DB_PASSWORD: kong
+  #     DB_DATABASE: kong
+  #   ports:
+  #     - "1337:1337"
+  #   depends_on:
+  #     - kong-db
+  #   networks:
+  #     - microservices-network
 
 volumes:
-  postgres_data:
+  auth_data:
+  pedido_data:
+  fleet_data:
+  billing_data:
   kong_data:
 
 networks:
