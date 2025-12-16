@@ -1,0 +1,598 @@
+{
+	"info": {
+		"_postman_id": "6ea3e2e7-7b48-443a-8f09-7fc336bbe868",
+		"name": "Microservicios - Distribución de Paquetes",
+		"description": "Colección de endpoints para testing del sistema de microservicios",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41626171"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register - Cliente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"cliente@example.com\",\n  \"username\": \"cliente1\",\n  \"password\": \"password123\",\n  \"full_name\": \"Juan Pérez\",\n  \"role\": \"CLIENTE\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register - Supervisor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"supervisor@example.com\",\n  \"username\": \"supervisor1\",\n  \"password\": \"password123\",\n  \"full_name\": \"Supervisor Principal\",\n  \"role\": \"SUPERVISOR\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Extrae access_token y refresh_token y los guarda en variables de colección",
+									"try {",
+									"  var json = pm.response.json();",
+									"  if (json.access_token) pm.collectionVariables.set('access_token', json.access_token);",
+									"  if (json.refresh_token) pm.collectionVariables.set('refresh_token', json.refresh_token);",
+									"} catch (e) { console.log('no json response or missing tokens'); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"cliente1\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/auth/me",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/auth/token/refresh",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"auth",
+								"token",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Pedidos",
+			"item": [
+				{
+					"name": "Create Pedido",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tipo_entrega\": \"DOMICILIO\",\n  \"direccion\": \"Calle Principal 123, Apartamento 4B\",\n  \"ciudad\": \"Bogotá\",\n  \"codigo_postal\": \"110111\",\n  \"latitud\": 4.7110,\n  \"longitud\": -74.0721,\n  \"descripcion\": \"Paquete con documentos\",\n  \"peso_kg\": 2.5,\n  \"dimensiones\": \"30x20x10 cm\",\n  \"valor_declarado\": 100000,\n  \"destinatario_nombre\": \"Juan Pérez\",\n  \"destinatario_telefono\": \"+573001234567\",\n  \"destinatario_email\": \"juan@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/pedidos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"pedidos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Pedidos (Cliente)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/pedidos?skip=0&limit=10",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"pedidos"
+							],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pedido Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/pedidos/{{pedido_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Pedido (Supervisor)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{supervisor_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"estado\": \"CONFIRMADO\",\n  \"repartidor_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/pedidos/{{pedido_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Pedido",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"motivo\": \"Cliente solicita cancelación del pedido\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/pedidos/{{pedido_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"pedidos",
+								"{{pedido_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Fleet",
+			"item": [
+				{
+					"name": "Create Repartidor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{supervisor_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Carlos García\",\n  \"email\": \"carlos@example.com\",\n  \"telefono\": \"+573001234567\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/fleet/repartidores",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"fleet",
+								"repartidores"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Repartidores",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{supervisor_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/fleet/repartidores",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"fleet",
+								"repartidores"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Vehiculo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{supervisor_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"repartidor_id\": \"{{repartidor_id}}\",\n  \"placa\": \"ABC-123\",\n  \"tipo\": \"CARRO\",\n  \"modelo\": \"Honda Civic\",\n  \"marca\": \"Honda\",\n  \"anio\": \"2022\",\n  \"capacidad_kg\": 500,\n  \"volumen_m3\": 2.5\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/fleet/vehiculos",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"fleet",
+								"vehiculos"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Billing",
+			"item": [
+				{
+					"name": "Create Factura",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pedido_id\": \"{{pedido_id}}\",\n  \"cliente_id\": \"{{cliente_id}}\",\n  \"tarifa_base\": 10000,\n  \"tarifa_distancia\": 5000,\n  \"tarifa_peso\": 2000,\n  \"descuento\": 1000,\n  \"descripcion\": \"Envío urbano\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/api/billing",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"billing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Facturas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/billing",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"billing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Factura",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/billing/{{factura_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"billing",
+								"{{factura_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Factura",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/billing/{{factura_id}}/enviar",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"billing",
+								"{{factura_id}}",
+								"enviar"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "supervisor_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cliente_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "pedido_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "factura_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "repartidor_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

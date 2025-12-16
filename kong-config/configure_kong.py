@@ -35,7 +35,8 @@ class KongConfigurator:
             "url": url,
             "tags": tags or []
         }
-        response = requests.post(f"{self.admin_url}/services", json=data)
+        # Usar PUT para upsert por nombre (idempotente)
+        response = requests.put(f"{self.admin_url}/services/{name}", json=data)
         if response.status_code in [200, 201]:
             print(f"✓ Servicio '{name}' creado")
             return response.json()
@@ -43,7 +44,7 @@ class KongConfigurator:
         return None
     
     def create_route(self, service_name: str, route_name: str, paths: List[str], 
-                    methods: List[str] = None, strip_path: bool = False) -> Dict:
+                    methods: List[str] = None, strip_path: bool = True) -> Dict:
         """Crea una ruta para un servicio"""
         data = {
             "name": route_name,
@@ -51,9 +52,12 @@ class KongConfigurator:
             "methods": methods or ["GET", "POST", "PATCH", "DELETE"],
             "strip_path": strip_path
         }
-        response = requests.post(
-            f"{self.admin_url}/services/{service_name}/routes",
-            json=data
+        # Usar PUT para crear/actualizar la ruta por nombre y asociarla al servicio
+        data_with_service = data.copy()
+        data_with_service["service"] = {"name": service_name}
+        response = requests.put(
+            f"{self.admin_url}/routes/{route_name}",
+            json=data_with_service
         )
         if response.status_code in [200, 201]:
             print(f"✓ Ruta '{route_name}' creada")
@@ -78,6 +82,10 @@ class KongConfigurator:
         if response.status_code in [200, 201]:
             print(f"✓ Plugin '{plugin_name}' configurado")
             return response.json()
+        if response.status_code == 409:
+            # Plugin ya existe (unique constraint) — no es error crítico
+            print(f"⚠ Plugin '{plugin_name}' ya existe, omitiendo")
+            return None
         print(f"✗ Error configurando plugin '{plugin_name}': {response.text}")
         return None
     
@@ -92,8 +100,8 @@ class KongConfigurator:
         
         print("\n=== CREANDO RUTAS - AUTH ===")
         # Ruta base para todo el prefijo /api/auth (login, register, me, etc.)
-        self.create_route("auth-service", "auth-base", ["/api/auth"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
-        # Rutas específicas (opcionales)
+        self.create_route("auth-service", "auth-base", ["/api/auth"], ["GET", "POST", "PATCH", "DELETE"], strip_path=True)
+        # Rutas específicas: conservar el path completo hacia el upstream
         self.create_route("auth-service", "auth-login", ["/api/auth/login"], ["POST"], strip_path=False)
         self.create_route("auth-service", "auth-register", ["/api/auth/register"], ["POST"], strip_path=False)
         self.create_route("auth-service", "auth-token-refresh", ["/api/auth/token/refresh"], ["POST"], strip_path=False)
@@ -102,8 +110,8 @@ class KongConfigurator:
         
         print("\n=== CREANDO RUTAS - PEDIDOS ===")
         # Ruta base para todo el prefijo /api/pedidos
+        # Mantener rutas específicas sin strip para que el upstream reciba '/api/pedidos' y '/api/pedidos/{id}'
         self.create_route("pedido-service", "pedidos-base", ["/api/pedidos"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
-        # Rutas específicas (opcionales)
         self.create_route("pedido-service", "pedidos-create", ["/api/pedidos"], ["POST"], strip_path=False)
         self.create_route("pedido-service", "pedidos-list", ["/api/pedidos"], ["GET"], strip_path=False)
         # Para ids, preferible path base y que pase todo el sufijo
@@ -113,8 +121,8 @@ class KongConfigurator:
         
         print("\n=== CREANDO RUTAS - FLEET ===")
         # Ruta base para todo el prefijo /api/fleet
+        # Conservar rutas específicas completas para Fleet
         self.create_route("fleet-service", "fleet-base", ["/api/fleet"], ["GET", "POST", "PATCH", "DELETE"], strip_path=False)
-        # Rutas específicas (opcionales)
         self.create_route("fleet-service", "fleet-repartidores", ["/api/fleet/repartidores"], ["GET", "POST"], strip_path=False)
         self.create_route("fleet-service", "fleet-repartidor", ["/api/fleet/repartidores"], ["GET", "PATCH"], strip_path=False)
         self.create_route("fleet-service", "fleet-vehiculos", ["/api/fleet/vehiculos"], ["GET", "POST"], strip_path=False)
@@ -122,8 +130,8 @@ class KongConfigurator:
         
         print("\n=== CREANDO RUTAS - BILLING ===")
         # Ruta base para todo el prefijo /api/billing
+        # Conservar rutas específicas completas para Billing
         self.create_route("billing-service", "billing-base", ["/api/billing"], ["GET", "POST", "PATCH"], strip_path=False)
-        # Rutas específicas (opcionales)
         self.create_route("billing-service", "billing-create", ["/api/billing"], ["POST"], strip_path=False)
         self.create_route("billing-service", "billing-list", ["/api/billing"], ["GET"], strip_path=False)
         self.create_route("billing-service", "billing-detail", ["/api/billing"], ["GET"], strip_path=False)
@@ -161,9 +169,10 @@ class KongConfigurator:
         })
         
         # Request transformer para headers
+        # Evitar expansión de shell en la configuración del plugin (causaba error Lua)
         self.create_plugin("request-transformer", config={
             "add": {
-                "headers": ["X-Request-ID:$(date +%s%N)"]
+                "headers": ["X-Request-ID: kong"]
             }
         })
         
